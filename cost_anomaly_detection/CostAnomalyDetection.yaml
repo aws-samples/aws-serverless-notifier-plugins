@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Connect Cost Anomaly Detection subscription to SNS."
+
+Parameters:
+  SnsArn:
+    Type: String
+    Description: "SNS ARN."
+
+  AnomalyThreshold:
+    Type: Number
+    Default: 100
+    Description: "Threshold for service anomaly use."
+
+Resources:
+  AnomalyServiceMonitor:
+    Type: "AWS::CE::AnomalyMonitor"
+    Properties:
+      MonitorName: "AllServiceMonitor"
+      MonitorType: "DIMENSIONAL"
+      MonitorDimension: "SERVICE"
+
+  AnomalySubscription:
+    Type: "AWS::CE::AnomalySubscription"
+    Properties:
+      SubscriptionName: "AnomalyServiceMonitoring"
+      Threshold: !Ref AnomalyThreshold
+      Frequency: "IMMEDIATE"
+      MonitorArnList:
+        - !Ref AnomalyServiceMonitor
+      Subscribers:
+        - Type: "SNS"
+          Address: !Ref SnsArn

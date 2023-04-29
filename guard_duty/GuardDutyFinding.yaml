@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Guard Duty Finding rule for Event Bridge plugin."
+
+Parameters:
+  EventBusNamePar:
+    Type: String
+    Default: "default"
+    Description: "Event Bus name."
+
+  SnsArn:
+    Type: String
+    Description: "SNS ARN."
+
+Resources:
+  EventRuleGuardDutyFinding:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Notification rule：GuardDuty Finding
+      EventBusName: !Ref EventBusNamePar
+      EventPattern:
+        detail-type:
+          - GuardDuty Finding
+        source:
+          - aws.guardduty
+        detail:
+          severity:
+            - numeric:
+                - '>='
+                - 4
+      Targets:
+        - Id: Send2SNS
+          Arn: !Ref SnsArn
+          InputTransformer:
+            InputPathsMap:
+              Finding_ID: $.detail.id
+              Finding_Type: $.detail.type
+              Finding_description: $.detail.description
+              count: $.detail.service.count
+              eventFirstSeen: $.detail.service.eventFirstSeen
+              eventLastSeen: $.detail.service.eventLastSeen
+              instanceId: $.detail.resource.instanceDetails.instanceId
+              port: >-
+                $.detail.service.action.networkConnectionAction.localPortDetails.port
+              region: $.region
+              severity: $.detail.severity
+              time: $.time
+              title: $.detail.title
+            InputTemplate: >-
+              "Guard Duty 发现异常事件: \n时间: <time> \n区域: <region> \n可疑行为等级:
+              <severity> \n可疑行为类型: <Finding_Type> \n可疑行为名称: <title> \n描述:
+              <Finding_description> \n已发生次数: <count> \n事件链接:
+              https://console.aws.amazon.com/guardduty/home?region=<region>#/findings?search=id%3D<Finding_ID>
+              \n请尽快处理！"
