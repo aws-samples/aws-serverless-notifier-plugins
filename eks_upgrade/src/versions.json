@@ -1,0 +1,7 @@
+{
+  "1.22": {
+    "end": "2023-06-04",
+    "days": 30,
+    "url": "https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html"
+  }
+}
