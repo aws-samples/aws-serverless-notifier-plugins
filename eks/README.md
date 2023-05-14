@@ -1,6 +1,6 @@
-# EKS-Upgrade-Notifier
+# EKS-Notifier
 
-Serverless EKS Upgrade Notifier
+The EKS Notifier is implemented by Serverless and EDA.
 
 Available on the [AWS Serverless Application Repository](https://aws.amazon.com/serverless)
 
@@ -17,19 +17,19 @@ To open `Serverless Application Repository` in the AWS Management Console:
 
 ![Notifier](images/Notifier.jpg)
 
-# Install EKS Upgrade Notifier
+# Install/Update EKS Notifier
 
 Based on notifier you selected, deploy this application will publish notification messages to your `SNS Topic`.
 
-1. Select the `EKS-Upgrade-Notifier` method that you want to use.
+1. Select the `EKS-Notifier` method that you want to use.
 
-   ![EKS-Upgrade-Notifier](images/EKS-Upgrade-Notifier.jpg)
+   ![EKS-Notifier](images/EKS-Notifier.jpg)
 
 2. Enter the `ARN` of SNS Topic.
 
    ![Install.jpg](images/Install.jpg)
 
-# Delete EKS Upgrade Notifier
+# Delete EKS Notifier
 
 If you want to uninstall this application, you can go to the console: `AWS Lambda` -> `Applications`, find your
 application, and select delete.
