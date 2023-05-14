@@ -3,6 +3,8 @@ const https = require('https');
 const region = process.env.AWS_REGION;
 const version = process.env.VERSION;
 const stackName = process.env.STACK_NAME;
+const stackId = process.env.STACK_ID;
+const appName = stackName.replace('serverlessrepo-', '');
 const topicArn = process.env.TOPIC_ARN;
 const applicationId = region.startsWith('cn') ? process.env.APPLICATION_ID_CN : process.env.APPLICATION_ID;
 const line = `-----------------------------`;
@@ -12,14 +14,17 @@ const eks = new AWS.EKS();
 exports.handler = async (event) => {
     console.log(event);
     if (event.source && event.source === 'aws.eks') {
-        await checkEbEvent(event);
+        await checkEksEvent(event);
+        await checkVersion();
+    } else if (event.source && event.source === 'aws.cloudformation') {
+        await checkCloudformationEvent(event);
     } else {
         await checkEksVersion();
+        await checkVersion();
     }
-    await checkVersion();
 };
 
-async function checkEbEvent(event) {
+async function checkEksEvent(event) {
     const eventName = event.detail.eventName;
     const name = event.detail.requestParameters.name;
 
@@ -44,12 +49,34 @@ async function checkEbEvent(event) {
         list.push(line);
         list.push(`集群列表：${clustersLink()}`);
         await publish('EKS 集群删除', list);
-    } else {
+    }
+}
+
+async function checkCloudformationEvent(event) {
+    const details = event.detail['status-details'];
+    const status = details.status;
+
+    if (status === 'UPDATE_IN_PROGRESS') {
         let list = [];
-        list.push(`集群 ${name} 发生 ${eventName} 事件`);
-        list.push(line);
-        list.push(`集群列表：${clustersLink()}`);
-        await publish('EKS 集群事件', list);
+        list.push(`EKS-Notifier 实例 ${appName} 正在更新...`);
+        list.push(`更新进度： ${stackLink()}`);
+        await publish('EKS-Notifier 更新中', list);
+    } else if (status === 'UPDATE_COMPLETE') {
+        let list = [];
+        list.push(`EKS-Notifier 实例 ${appName} 更新完成，版本：${version}，将重新检查集群版本...`);
+        await publish('EKS-Notifier 更新完成', list);
+        await checkEksVersion();
+    } else if (status === 'DELETE_IN_PROGRESS') {
+        let list = [];
+        list.push(`EKS-Notifier 实例 ${appName} 正在删除...您将不会再收到该实例发出的 EKS 通知。`);
+        list.push(`删除进度： ${stackLink()}`);
+        await publish('EKS-Notifier 删除中', list);
+    } else if (status === 'CREATE_COMPLETE') {
+        let list = [];
+        list.push(`EKS-Notifier 实例 ${appName} 创建成功，将执行集群版本检查...`);
+        await publish('EKS-Notifier 创建成功', list);
+        await checkEksVersion();
+        await checkVersion();
     }
 }
 
@@ -151,15 +178,13 @@ async function checkVersion() {
     const lastVersion = await getLatestVersion();
     let list = [];
     if (lastVersion && compareVersions(version, lastVersion) === -1) {
-        list.push(`通知应用的最新版本是 ${lastVersion}，您安装的应用版本是 ${version}，点击链接升级：${upgradeLink()}`);
+        list.push(`EKS-Notifier 的最新版本是 ${lastVersion}，当前版本是 ${version}，点击链接升级：${upgradeLink()}`);
         list.push(line);
         list.push(`请注意复制以下变量：`);
-        list.push(`【Application name`);
-        list.push(stackName.replace('serverlessrepo-', ''));
-        list.push(`【SnsArn】`);
-        list.push(topicArn);
+        list.push(`【Application name】` + appName);
+        list.push(`【SnsArn】` + topicArn);
     }
-    await publish('应用需要升级', list);
+    await publish('EKS-Notifier 需要升级', list);
 }
 
 function compareVersions(version1, version2) {
@@ -183,6 +208,10 @@ function compareVersions(version1, version2) {
 
 function upgradeLink() {
     return region.startsWith('cn') ? `https://console.amazonaws.cn/lambda/home?region=${region}#/create/app?applicationId=${applicationId}` : `https://${region}.console.aws.amazon.com/lambda/home?region=${region}#/create/app?applicationId=${applicationId}`;
+}
+
+function stackLink() {
+    return region.startsWith('cn') ? `https://${region}.console.amazonaws.cn/cloudformation/home?region=${region}#/stacks/events?stackId=${stackId}&filteringText=&filteringStatus=active&viewNested=true` : `https://${region}.console.aws.amazon.com/cloudformation/home?region=${region}#/stacks/events?filteringText=&filteringStatus=active&viewNested=true&stackId=${stackId}`;
 }
 
 function clustersLink() {
