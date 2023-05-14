@@ -1,12 +1,13 @@
 const AWS = require('aws-sdk');
 const https = require('https');
-const region = process.env.AWS_REGION;
-const version = process.env.VERSION;
-const stackName = process.env.STACK_NAME;
-const stackId = process.env.STACK_ID;
+const env = process.env;
+const region = env.AWS_REGION;
+const version = env.VERSION;
+const stackName = env.STACK_NAME;
+const stackId = env.STACK_ID;
 const appName = stackName.replace('serverlessrepo-', '');
-const topicArn = process.env.TOPIC_ARN;
-const applicationId = region.startsWith('cn') ? process.env.APPLICATION_ID_CN : process.env.APPLICATION_ID;
+const topicArn = env.TOPIC_ARN;
+const applicationId = region.startsWith('cn') ? env.APPLICATION_ID_CN : env.APPLICATION_ID;
 const line = `-----------------------------`;
 const sns = new AWS.SNS();
 const eks = new AWS.EKS();
@@ -68,7 +69,7 @@ async function checkCloudformationEvent(event) {
         await checkEksVersion();
     } else if (status === 'DELETE_IN_PROGRESS') {
         let list = [];
-        list.push(`EKS-Notifier 实例 ${appName} 正在删除...您将不会再收到该实例发出的 EKS 通知。`);
+        list.push(`EKS-Notifier 实例 ${appName} 正在删除... 您将不会再收到该实例发出的 EKS 通知。`);
         list.push(`删除进度： ${stackLink()}`);
         await publish('EKS-Notifier 删除中', list);
     } else if (status === 'CREATE_COMPLETE') {
