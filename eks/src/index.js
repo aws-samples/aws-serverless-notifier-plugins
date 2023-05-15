@@ -7,7 +7,8 @@ const stackName = env.STACK_NAME;
 const stackId = env.STACK_ID;
 const appName = stackName.replace('serverlessrepo-', '');
 const topicArn = env.TOPIC_ARN;
-const applicationId = region.startsWith('cn') ? env.APPLICATION_ID_CN : env.APPLICATION_ID;
+const cn = region.startsWith('cn');
+const applicationId = cn ? env.APPLICATION_ID_CN : env.APPLICATION_ID;
 const line = `-----------------------------`;
 const sns = new AWS.SNS();
 const eks = new AWS.EKS();
@@ -32,7 +33,7 @@ async function checkEksEvent(event) {
     if (eventName === 'CreateCluster') {
         let list = [];
         const version = event.detail.requestParameters.version;
-        const dayLeft = computeDay(version);
+        const dayLeft = await computeDay(version);
         if (dayLeft === false) {
             return;
         }
@@ -90,7 +91,7 @@ async function checkEksVersion() {
         };
         const cluster = await eks.describeCluster(params).promise();
         const version = cluster.cluster.version;
-        const dayLeft = computeDay(version);
+        const dayLeft = await computeDay(version);
 
         if (dayLeft === false) {
             return;
@@ -112,34 +113,14 @@ async function checkEksVersion() {
     }
 }
 
-function computeDay(version) {
+async function computeDay(version) {
 
-    const versions = {
-        "1.20": {
-            "end": "2022-11-01", "days": 30
-        },
-        "1.21": {
-            "end": "2023-02-15", "days": 30
-        },
-        "1.22": {
-            "end": "2023-06-04", "days": 30
-        },
-        "1.23": {
-            "end": "2023-10-01", "days": 30
-        },
-        "1.24": {
-            "end": "2024-01-01", "days": 30
-        },
-        "1.25": {
-            "end": "2024-05-01", "days": 30
-        },
-        "1.26": {
-            "end": "2024-06-01", "days": 30
-        }
-    };
+    const versions = await loadVersions();
+    if (!versions) {
+        return false;
+    }
 
     const conf = versions[version];
-
     if (!conf) {
         return false;
     }
@@ -161,7 +142,6 @@ async function publish(title, list) {
         return [];
     }
 
-    list.unshift(line);
     list.unshift(`区域：${region}`);
     list.unshift(line);
     list.unshift(`【${title}】`);
@@ -208,15 +188,15 @@ function compareVersions(version1, version2) {
 }
 
 function upgradeLink() {
-    return region.startsWith('cn') ? `https://console.amazonaws.cn/lambda/home?region=${region}#/create/app?applicationId=${applicationId}` : `https://${region}.console.aws.amazon.com/lambda/home?region=${region}#/create/app?applicationId=${applicationId}`;
+    return cn ? `https://console.amazonaws.cn/lambda/home?region=${region}#/create/app?applicationId=${applicationId}` : `https://${region}.console.aws.amazon.com/lambda/home?region=${region}#/create/app?applicationId=${applicationId}`;
 }
 
 function stackLink() {
-    return region.startsWith('cn') ? `https://${region}.console.amazonaws.cn/cloudformation/home?region=${region}#/stacks/events?stackId=${stackId}&filteringText=&filteringStatus=active&viewNested=true` : `https://${region}.console.aws.amazon.com/cloudformation/home?region=${region}#/stacks/events?filteringText=&filteringStatus=active&viewNested=true&stackId=${stackId}`;
+    return cn ? `https://${region}.console.amazonaws.cn/cloudformation/home?region=${region}#/stacks/events?stackId=${stackId}&filteringText=&filteringStatus=active&viewNested=true` : `https://${region}.console.aws.amazon.com/cloudformation/home?region=${region}#/stacks/events?filteringText=&filteringStatus=active&viewNested=true&stackId=${stackId}`;
 }
 
 function clustersLink() {
-    return region.startsWith('cn') ? `https://${region}.console.amazonaws.cn/eks/home?region=${region}#/clusters` : `https://${region}.console.aws.amazon.com/eks/home?region=${region}#/clusters`;
+    return cn ? `https://${region}.console.amazonaws.cn/eks/home?region=${region}#/clusters` : `https://${region}.console.aws.amazon.com/eks/home?region=${region}#/clusters`;
 }
 
 async function getLatestVersion() {
@@ -239,11 +219,13 @@ async function getLatestVersion() {
 async function loadVersions() {
 
     const options = {
-        hostname: 'raw.githubusercontent.com',
-        path: '/aws-samples/aws-serverless-notifier-plugins/main/eks_upgrade/versions.json',
+        hostname: cn ? 'cdn.jsdelivr.net' : 'raw.githubusercontent.com',
+        path: cn ? '/gh/aws-samples/aws-serverless-notifier-plugins/eks/versions.json' : '/aws-samples/aws-serverless-notifier-plugins/main/eks/versions.json',
         method: 'GET',
         timeout: 5000
     };
+
+    console.log(options);
 
     let data = '';
 
