@@ -12,17 +12,18 @@ const applicationId = cn ? env.APPLICATION_ID_CN : env.APPLICATION_ID;
 const line = `-----------------------------`;
 const sns = new AWS.SNS();
 const eks = new AWS.EKS();
+let eksVersions = null;
 
 exports.handler = async (event) => {
     console.log(event);
     if (event.source && event.source === 'aws.eks') {
-        await checkEksEvent(event);
         await checkVersion();
+        await checkEksEvent(event);
     } else if (event.source && event.source === 'aws.cloudformation') {
         await checkCloudformationEvent(event);
     } else {
-        await checkEksVersion();
         await checkVersion();
+        await checkEksVersion();
     }
 };
 
@@ -74,11 +75,11 @@ async function checkCloudformationEvent(event) {
         list.push(`删除进度： ${stackLink()}`);
         await publish('EKS-Notifier 删除中', list);
     } else if (status === 'CREATE_COMPLETE') {
+        await checkVersion();
         let list = [];
         list.push(`EKS-Notifier 实例 ${appName} 创建成功，将执行集群版本检查...`);
         await publish('EKS-Notifier 创建成功', list);
         await checkEksVersion();
-        await checkVersion();
     }
 }
 
@@ -218,6 +219,43 @@ async function getLatestVersion() {
 
 async function loadVersions() {
 
+    if (cn) {
+        return {
+            "1.20": {
+                "end": "2022-11-01",
+                "days": 30
+            },
+            "1.21": {
+                "end": "2023-02-15",
+                "days": 30
+            },
+            "1.22": {
+                "end": "2023-06-04",
+                "days": 30
+            },
+            "1.23": {
+                "end": "2023-10-01",
+                "days": 30
+            },
+            "1.24": {
+                "end": "2024-01-01",
+                "days": 30
+            },
+            "1.25": {
+                "end": "2024-05-01",
+                "days": 30
+            },
+            "1.26": {
+                "end": "2024-06-01",
+                "days": 30
+            }
+        };
+    }
+
+    if (eksVersions !== null) {
+        return eksVersions;
+    }
+
     const options = {
         hostname: cn ? 'cdn.jsdelivr.net' : 'raw.githubusercontent.com',
         path: cn ? '/gh/aws-samples/aws-serverless-notifier-plugins/eks/versions.json' : '/aws-samples/aws-serverless-notifier-plugins/main/eks/versions.json',
@@ -247,5 +285,6 @@ async function loadVersions() {
 
     await new Promise(resolve => req.on('close', resolve));
 
-    return JSON.parse(data);
+    eksVersions = JSON.parse(data);
+    return eksVersions;
 }
