@@ -45,7 +45,7 @@ async function checkEksEvent(event) {
         }
         list.push(line);
         list.push(`Cluster List: ${clustersLink()}`);
-        await publish('Risk alert for newly created EKS cluster with lower version', list);
+        await publish('Risk alert for creating EKS cluster with lower version', list);
     } else if (eventName === 'DeleteCluster') {
         let list = [];
         list.push(`Cluster ${name} is being deleted...`);
