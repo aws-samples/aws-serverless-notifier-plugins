@@ -23,10 +23,10 @@ Resources:
       Tracing: Active
       Environment:
         Variables:
-          VERSION: 0.0.13
+          VERSION: 0.0.1
           TOPIC_ARN: !Ref SnsArn
           LANGUAGE: !Ref Language
-          APPLICATION_ID: !Sub arn:aws:serverlessrepo:${AWS::Region}:448353841126:applications/EKS-Notifier
+          APPLICATION_ID: !Sub arn:aws:serverlessrepo:${AWS::Region}:108326622621:applications/EKS-Notifier
           APPLICATION_ID_CN: !Sub arn:aws-cn:serverlessrepo:${AWS::Region}:555313987693:applications/EKS-Notifier
           STACK_NAME: !Ref AWS::StackName
           STACK_ID: !Ref AWS::StackId
