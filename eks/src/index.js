@@ -1,4 +1,3 @@
-const AWS = require('aws-sdk');
 const https = require('https');
 const env = process.env;
 const region = env.AWS_REGION;
@@ -7,8 +6,8 @@ const stackName = env.STACK_NAME;
 const stackId = env.STACK_ID;
 const appName = stackName.replace('serverlessrepo-', '');
 const topicArn = env.TOPIC_ARN;
-const cn = region.startsWith('cn');
-const applicationId = cn ? env.APPLICATION_ID_CN : env.APPLICATION_ID;
+const isCn = region.startsWith('cn');
+const applicationId = isCn ? env.APPLICATION_ID_CN : env.APPLICATION_ID;
 const line = `-----------------------------`;
 const sns = new AWS.SNS();
 const eks = new AWS.EKS();
@@ -189,15 +188,15 @@ function compareVersions(version1, version2) {
 }
 
 function upgradeLink() {
-    return cn ? `https://console.amazonaws.cn/lambda/home?region=${region}#/create/app?applicationId=${applicationId}` : `https://${region}.console.aws.amazon.com/lambda/home?region=${region}#/create/app?applicationId=${applicationId}`;
+    return isCn ? `https://console.amazonaws.cn/lambda/home?region=${region}#/create/app?applicationId=${applicationId}` : `https://${region}.console.aws.amazon.com/lambda/home?region=${region}#/create/app?applicationId=${applicationId}`;
 }
 
 function stackLink() {
-    return cn ? `https://${region}.console.amazonaws.cn/cloudformation/home?region=${region}#/stacks/events?stackId=${stackId}&filteringText=&filteringStatus=active&viewNested=true` : `https://${region}.console.aws.amazon.com/cloudformation/home?region=${region}#/stacks/events?filteringText=&filteringStatus=active&viewNested=true&stackId=${stackId}`;
+    return isCn ? `https://${region}.console.amazonaws.cn/cloudformation/home?region=${region}#/stacks/events?stackId=${stackId}&filteringText=&filteringStatus=active&viewNested=true` : `https://${region}.console.aws.amazon.com/cloudformation/home?region=${region}#/stacks/events?filteringText=&filteringStatus=active&viewNested=true&stackId=${stackId}`;
 }
 
 function clustersLink() {
-    return cn ? `https://${region}.console.amazonaws.cn/eks/home?region=${region}#/clusters` : `https://${region}.console.aws.amazon.com/eks/home?region=${region}#/clusters`;
+    return isCn ? `https://${region}.console.amazonaws.cn/eks/home?region=${region}#/clusters` : `https://${region}.console.aws.amazon.com/eks/home?region=${region}#/clusters`;
 }
 
 async function getLatestVersion() {
@@ -224,8 +223,8 @@ async function loadVersions() {
     }
 
     const options = {
-        hostname: cn ? 'gcore.jsdelivr.net' : 'raw.githubusercontent.com',
-        path: cn ? '/gh/aws-samples/aws-serverless-notifier-plugins/eks/versions.json' : '/aws-samples/aws-serverless-notifier-plugins/main/eks/versions.json',
+        hostname: isCn ? 'gcore.jsdelivr.net' : 'raw.githubusercontent.com',
+        path: isCn ? '/gh/aws-samples/aws-serverless-notifier-plugins/eks/versions.json' : '/aws-samples/aws-serverless-notifier-plugins/main/eks/versions.json',
         method: 'GET',
         timeout: 5000
     };
