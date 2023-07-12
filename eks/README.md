@@ -27,11 +27,11 @@ Based on notifier you selected, deploy this application will publish notificatio
 
 2. Enter the `ARN` of SNS Topic.
 
-   ![Install.jpg](images/install.png)
+   ![Install](images/install.png)
 
 # Delete EKS Notifier
 
 If you want to uninstall this application, you can go to the console: `AWS Lambda` -> `Applications`, find your
 application, and select delete.
 
-![Delete.jpg](images/delete.png)
+![Delete](images/delete.png)
