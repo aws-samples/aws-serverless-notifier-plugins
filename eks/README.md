@@ -15,7 +15,7 @@ To open `Serverless Application Repository` in the AWS Management Console:
 5. Select the `*-Notifier` method that you want to use.
 6. After deployment, copy the `ARN` of the `SNS Topic` to the clipboard.
 
-![Notifier](images/notifier.jpg)
+![Notifier](images/notifier.png)
 
 # Install/Update EKS Notifier
 
