@@ -1,3 +1,4 @@
+const AWS = require('aws-sdk');
 const https = require('https');
 const env = process.env;
 const region = env.AWS_REGION;
@@ -38,19 +39,19 @@ async function checkEksEvent(event) {
             return;
         }
         if (dayLeft.left < 0) {
-            list.push(`发现有新建集群 ${name} 版本 ${version} 已停止支持 ${Math.abs(dayLeft.left)} 天 ，请尽快升级。`);
+            list.push(`Detected a new cluster named ${name} with version ${version} that has reached end of support ${Math.abs(dayLeft.left)} days ago. Please upgrade as soon as possible.`);
         } else if (dayLeft.left <= dayLeft.days) {
-            list.push(`发现有新建集群 ${name} 版本 ${version} 较低，且该版本将在 ${dayLeft.end} （${dayLeft.left}天后） 停止支持，如无必要，建议重建版本较高的集群。`);
+            list.push(`Detected that a new cluster named ${name} with version ${version} is outdated, and this version will reach end of support on ${dayLeft.end} (${dayLeft.left} days left). It is recommended to rebuild the cluster with a higher version, unless necessary.`);
         }
         list.push(line);
-        list.push(`集群列表：${clustersLink()}`);
-        await publish('新建 EKS 集群版本较低风险提示', list);
+        list.push(`Cluster List: ${clustersLink()}`);
+        await publish('Risk alert for creating EKS cluster with lower version', list);
     } else if (eventName === 'DeleteCluster') {
         let list = [];
-        list.push(`集群 ${name} 删除中...`);
+        list.push(`Cluster ${name} is being deleted...`);
         list.push(line);
-        list.push(`集群列表：${clustersLink()}`);
-        await publish('EKS 集群删除', list);
+        list.push(`Cluster List: ${clustersLink()}`);
+        await publish('Deleting an EKS Cluster', list);
     }
 }
 
@@ -60,24 +61,24 @@ async function checkCloudformationEvent(event) {
 
     if (status === 'UPDATE_IN_PROGRESS') {
         let list = [];
-        list.push(`EKS-Notifier 实例 ${appName} 正在更新...`);
-        list.push(`更新进度： ${stackLink()}`);
-        await publish('EKS-Notifier 更新中', list);
+        list.push(`${appName} is updating...`);
+        list.push(`Processing: ${stackLink()}`);
+        await publish('EKS-Notifier Updating', list);
     } else if (status === 'UPDATE_COMPLETE') {
         let list = [];
-        list.push(`EKS-Notifier 实例 ${appName} 更新完成，版本：${version}，将重新检查集群版本...`);
-        await publish('EKS-Notifier 更新完成', list);
+        list.push(`${appName} Updated, Version: ${version}, will check clusters again...`);
+        await publish('EKS-Notifier Updated', list);
         await checkEksVersion();
     } else if (status === 'DELETE_IN_PROGRESS') {
         let list = [];
-        list.push(`EKS-Notifier 实例 ${appName} 正在删除... 您将不会再收到该实例发出的 EKS 通知。`);
-        list.push(`删除进度： ${stackLink()}`);
-        await publish('EKS-Notifier 删除中', list);
+        list.push(`${appName} deleting... You will no longer receive EKS notifications.`);
+        list.push(`Processing: ${stackLink()}`);
+        await publish('EKS-Notifier Deleting', list);
     } else if (status === 'CREATE_COMPLETE') {
         await checkVersion();
         let list = [];
-        list.push(`EKS-Notifier 实例 ${appName} 创建成功，将执行集群版本检查...`);
-        await publish('EKS-Notifier 创建成功', list);
+        list.push(`${appName} created, will check clusters...`);
+        await publish('EKS-Notifier Created', list);
         await checkEksVersion();
     }
 }
@@ -98,18 +99,18 @@ async function checkEksVersion() {
         }
 
         if (dayLeft.left < 0) {
-            list.push(`集群 ${clusterName} 版本 ${version} 已停止支持 ${Math.abs(dayLeft.left)} 天 ，请尽快升级。`);
+            list.push(`Cluster ${clusterName} with version ${version} has reached end of support ${Math.abs(dayLeft.left)} days ago. Please upgrade as soon as possible.`);
         } else if (dayLeft.left <= dayLeft.days) {
-            list.push(`集群 ${clusterName} 版本 ${version} 将在 ${dayLeft.end} （${dayLeft.left}天后） 停止支持，请尽快升级。`);
+            list.push(`Cluster ${clusterName} with version ${version} will reach end of support on ${dayLeft.end} (${dayLeft.left} days left). Please upgrade as soon as possible.`);
         }
 
     }));
 
     if (list.length > 0) {
         list.push(line);
-        list.push(`集群列表：${clustersLink()}`);
-        list.push(`参考版本：https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html`);
-        await publish('EKS 集群需要升级', list);
+        list.push(`Cluster List: ${clustersLink()}`);
+        list.push(`Doc: https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html`);
+        await publish('EKS-Notifier needs to be upgraded', list);
     }
 }
 
@@ -142,7 +143,7 @@ async function publish(title, list) {
         return [];
     }
 
-    list.unshift(`区域：${region}`);
+    list.unshift(`Region: ${region}`);
     list.unshift(line);
     list.unshift(`【${title}】`);
 
@@ -159,13 +160,13 @@ async function checkVersion() {
     const lastVersion = await getLatestVersion();
     let list = [];
     if (lastVersion && compareVersions(version, lastVersion) === -1) {
-        list.push(`EKS-Notifier 的最新版本是 ${lastVersion}，当前版本是 ${version}，点击链接升级：${upgradeLink()}`);
+        list.push(`The latest version of EKS-Notifier is ${lastVersion}, and the current version is ${version}. Click the link to upgrade: ${upgradeLink()}`);
         list.push(line);
-        list.push(`请注意复制以下变量：`);
+        list.push("Please make sure to copy the following variables:");
         list.push(`【Application name】` + appName);
         list.push(`【SnsArn】` + topicArn);
     }
-    await publish('EKS-Notifier 需要升级', list);
+    await publish('EKS-Notifier needs to be upgraded', list);
 }
 
 function compareVersions(version1, version2) {
